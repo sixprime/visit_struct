@@ -571,33 +571,6 @@ Again, patches welcome.
 
 Much thanks again to Jarod42 for significant patches related to MSVC support.
 
-## Constexpr Correctness
-
-`visit_struct` attempts to target three different levels of `constexpr` support.
-
-- No support
-- C++11 support
-- C++14 extended support
-
-This is controlled by two macros `VISIT_STRUCT_CONSTEXPR` and `VISIT_STRUCT_CXX14_CONSTEXPR`. We use these tokens where we would use the `constexpr` keyword.
-
-In the `visit_struct.hpp` header, these macros are defined to either `constexpr` or nothing.
-
-We attempt to guess the appropriate setting by inspecting the preprocessor symbols `__cplusplus` and `_MSC_VER`.
-
-If it doesn't work on your compiler, please open a github issue, especially if you know how to fix it :)
-
-In the meantime, if you don't want to tweak the headers for your project, you can override the behavior by defining these macros yourself, before including `visit_struct.hpp`.
-If the header sees that you have defined them it won't touch them and will defer to your settings. In most cases this should not be necessary.
-
-On gcc and clang, we assume at least C++11 constexpr support. If you enabled a later standard using `-std=...`, we turn on the full `constexpr`.
-
-On MSVC currently the settings are:
-
-- VS2013: no support
-- VS2015: C++11 support
-- VS2017: C++14 extended support
-
 ## Licensing and Distribution
 
 **visit_struct** is available under the boost software license.

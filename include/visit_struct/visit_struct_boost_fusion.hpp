@@ -37,24 +37,24 @@ private:
   // Get names for members of fusion structure S
   // Cage the unwieldy fusion syntax
   template <int idx>
-  static VISIT_STRUCT_CONSTEXPR auto field_name() -> decltype(fusion::extension::struct_member_name<S, idx>::call()) {
+  static constexpr auto field_name() -> decltype(fusion::extension::struct_member_name<S, idx>::call()) {
     return fusion::extension::struct_member_name<S, idx>::call();
   }
 
   // Accessor type for fusion structure S
   template <int idx>
   struct accessor {
-    VISIT_STRUCT_CONSTEXPR auto operator()(S & s) const ->
+    constexpr auto operator()(S & s) const ->
     decltype(fusion::at_c<idx>(s)) {
       return fusion::at_c<idx>(s);
     }
 
-    VISIT_STRUCT_CONSTEXPR auto operator()(const S & s) const ->
+    constexpr auto operator()(const S & s) const ->
     decltype(fusion::at_c<idx>(s)) {
       return fusion::at_c<idx>(s);
     }
 
-    VISIT_STRUCT_CONSTEXPR auto operator()(S && s) const ->
+    constexpr auto operator()(S && s) const ->
     decltype(std::move(fusion::at_c<idx>(s))) {
       return std::move(fusion::at_c<idx>(s));
     }
@@ -70,7 +70,7 @@ private:
     explicit fusion_visitor(V v, T t) : visitor(std::forward<V>(v)), struct_instance(std::forward<T>(t)) {}
 
     template <typename Index>
-    VISIT_STRUCT_CXX14_CONSTEXPR void operator()(Index) const {
+    constexpr void operator()(Index) const {
       using accessor_t = accessor<Index::value>;
       std::forward<V>(visitor)(field_name<Index::value>(), accessor_t()(std::forward<T>(struct_instance)));
     }
@@ -89,7 +89,7 @@ private:
     {}
 
     template <typename Index>
-    VISIT_STRUCT_CXX14_CONSTEXPR void operator()(Index) const {
+    constexpr void operator()(Index) const {
       accessor<Index::value> a;
       std::forward<V>(visitor)(field_name<Index::value>(), a(std::forward<T1>(instance_1)), a(std::forward<T2>(instance_2)));
     }
@@ -102,7 +102,7 @@ private:
     explicit fusion_visitor_types(V v) : visitor(std::forward<V>(v)) {}
 
     template <typename Index>
-    VISIT_STRUCT_CXX14_CONSTEXPR void operator()(Index) const {
+    constexpr void operator()(Index) const {
       using current_type = typename fusion::result_of::value_at<S, Index>::type;
       std::forward<V>(visitor)(field_name<Index::value>(), visit_struct::type_c<current_type>{});
     }
@@ -115,14 +115,14 @@ private:
     explicit fusion_visitor_accessors(V v) : visitor(std::forward<V>(v)) {}
 
     template <typename Index>
-    VISIT_STRUCT_CXX14_CONSTEXPR void operator()(Index) const {
+    constexpr void operator()(Index) const {
       using accessor_t = accessor<Index::value>;
       std::forward<V>(visitor)(field_name<Index::value>(), accessor_t());
     }
   };
 
 public:
-  static VISIT_STRUCT_CONSTEXPR const size_t field_count = fusion::result_of::size<S>::value;
+  static constexpr const size_t field_count = fusion::result_of::size<S>::value;
 
   // T should be a qualified S
   template <typename V, typename T>
@@ -159,21 +159,21 @@ public:
 
   // T should be qualified S
   template <int idx, typename T>
-  static VISIT_STRUCT_CONSTEXPR auto get_value(std::integral_constant<int, idx>, T && t)
+  static constexpr auto get_value(std::integral_constant<int, idx>, T && t)
     -> decltype(accessor<idx>()(std::forward<T>(t)))
   {
     return accessor<idx>()(std::forward<T>(t));
   }
 
   template <int idx>
-  static VISIT_STRUCT_CONSTEXPR auto get_name(std::integral_constant<int, idx>)
+  static constexpr auto get_name(std::integral_constant<int, idx>)
     -> decltype(field_name<idx>())
   {
     return field_name<idx>();
   }
 
   template <int idx>
-  static VISIT_STRUCT_CONSTEXPR auto get_accessor(std::integral_constant<int, idx>) ->
+  static constexpr auto get_accessor(std::integral_constant<int, idx>) ->
     accessor<idx>
   {
     return {};
@@ -183,7 +183,7 @@ public:
   static auto type_at(std::integral_constant<int, idx>) ->
     visit_struct::type_c<typename fusion::result_of::value_at_c<S, idx>::type>;
 
-  static VISIT_STRUCT_CONSTEXPR const bool value = true;
+  static constexpr const bool value = true;
 };
 
 } // end namespace traits

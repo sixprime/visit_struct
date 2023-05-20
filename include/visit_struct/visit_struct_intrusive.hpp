@@ -41,7 +41,7 @@ namespace detail {
 
 template <class... Ts>
 struct TypeList {
-  static VISIT_STRUCT_CONSTEXPR const unsigned int size = sizeof...(Ts);
+  static constexpr const unsigned int size = sizeof...(Ts);
 };
 
 // Append metafunction
@@ -97,7 +97,7 @@ struct Rank : Rank<N - 1> {};
 template <>
 struct Rank<0> {};
 
-static VISIT_STRUCT_CONSTEXPR const int max_visitable_members_intrusive = 100;
+static constexpr const int max_visitable_members_intrusive = 100;
 
 /***
  * To create a "compile-time" TypeList whose members are accumulated one-by-one,
@@ -166,7 +166,7 @@ struct intrusive_tag{};
 
 template <typename S, typename T, T S::*member_ptr>
 struct member_ptr_helper {
-  static VISIT_STRUCT_CONSTEXPR T S::* get_ptr() { return member_ptr; }
+  static constexpr T S::* get_ptr() { return member_ptr; }
   using value_type = T;
 
   using accessor_t = visit_struct::accessor<T S::*, member_ptr>;
@@ -176,29 +176,29 @@ struct member_ptr_helper {
 template <typename M>
 struct member_helper {
   template <typename V, typename S>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void apply_visitor(V && visitor, S && structure_instance) {
+  constexpr static void apply_visitor(V && visitor, S && structure_instance) {
     std::forward<V>(visitor)(M::member_name(), std::forward<S>(structure_instance).*M::get_ptr());
   }
 
   template <typename V, typename S1, typename S2>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void apply_visitor(V && visitor, S1 && s1, S2 && s2) {
+  constexpr static void apply_visitor(V && visitor, S1 && s1, S2 && s2) {
     std::forward<V>(visitor)(M::member_name(),
                              std::forward<S1>(s1).*M::get_ptr(),
                              std::forward<S2>(s2).*M::get_ptr());
   }
 
   template <typename V>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void visit_pointers(V && visitor) {
+  constexpr static void visit_pointers(V && visitor) {
     std::forward<V>(visitor)(M::member_name(), M::get_ptr());
   }
 
   template <typename V>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void visit_accessors(V && visitor) {
+  constexpr static void visit_accessors(V && visitor) {
     std::forward<V>(visitor)(M::member_name(), typename M::accessor_t());
   }
 
   template <typename V>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void visit_types(V && visitor) {
+  constexpr static void visit_types(V && visitor) {
     std::forward<V>(visitor)(M::member_name(), visit_struct::type_c<typename M::value_type>{});
   }
 
@@ -210,7 +210,7 @@ struct structure_helper;
 template <typename... Ms>
 struct structure_helper<TypeList<Ms...>> {
   template <typename V, typename S>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void apply_visitor(V && visitor, S && structure_instance) {
+  constexpr static void apply_visitor(V && visitor, S && structure_instance) {
     // Use parameter pack expansion to force evaluation of the member helper for each member in the list.
     // Inside parens, a comma operator is being used to discard the void value and produce an integer, while
     // not being an unevaluated context. The order of evaluation here is enforced by the compiler.
@@ -223,7 +223,7 @@ struct structure_helper<TypeList<Ms...>> {
   }
 
   template <typename V, typename S1, typename S2>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void apply_visitor(V && visitor, S1 && s1, S2 && s2) {
+  constexpr static void apply_visitor(V && visitor, S1 && s1, S2 && s2) {
     int dummy[] = {(member_helper<Ms>::apply_visitor(std::forward<V>(visitor), std::forward<S1>(s1), std::forward<S2>(s2)), 0)..., 0};
     static_cast<void>(dummy);
     static_cast<void>(visitor);
@@ -232,21 +232,21 @@ struct structure_helper<TypeList<Ms...>> {
   }
 
   template <typename V>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void visit_pointers(V && visitor) {
+  constexpr static void visit_pointers(V && visitor) {
     int dummy[] = {(member_helper<Ms>::visit_pointers(std::forward<V>(visitor)), 0)..., 0};
     static_cast<void>(dummy);
     static_cast<void>(visitor);
   }
 
   template <typename V>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void visit_accessors(V && visitor) {
+  constexpr static void visit_accessors(V && visitor) {
     int dummy[] = {(member_helper<Ms>::visit_accessors(std::forward<V>(visitor)), 0)..., 0};
     static_cast<void>(dummy);
     static_cast<void>(visitor);
   }
 
   template <typename V>
-  VISIT_STRUCT_CXX14_CONSTEXPR static void visit_types(V && visitor) {
+  constexpr static void visit_types(V && visitor) {
     int dummy[] = {(member_helper<Ms>::visit_types(std::forward<V>(visitor)), 0)..., 0};
     static_cast<void>(dummy);
     static_cast<void>(visitor);
@@ -272,40 +272,40 @@ struct visitable <T,
                                          >::type
                  >
 {
-  static VISIT_STRUCT_CONSTEXPR const std::size_t field_count = T::Visit_Struct_Registered_Members_List__::size;
+  static constexpr const std::size_t field_count = T::Visit_Struct_Registered_Members_List__::size;
 
   // Apply to an instance
   // S should be the same type as T modulo const and reference
   template <typename V, typename S>
-  static VISIT_STRUCT_CXX14_CONSTEXPR void apply(V && v, S && s) {
+  static constexpr void apply(V && v, S && s) {
     detail::structure_helper<typename T::Visit_Struct_Registered_Members_List__>::apply_visitor(std::forward<V>(v), std::forward<S>(s));
   }
 
   // Apply with two instances
     template <typename V, typename S1, typename S2>
-  static VISIT_STRUCT_CXX14_CONSTEXPR void apply(V && v, S1 && s1, S2 && s2) {
+  static constexpr void apply(V && v, S1 && s1, S2 && s2) {
     detail::structure_helper<typename T::Visit_Struct_Registered_Members_List__>::apply_visitor(std::forward<V>(v), std::forward<S1>(s1), std::forward<S2>(s2));
   }
 
   // Apply with no instance
   template <typename V>
-  static VISIT_STRUCT_CXX14_CONSTEXPR void visit_pointers(V && v) {
+  static constexpr void visit_pointers(V && v) {
     detail::structure_helper<typename T::Visit_Struct_Registered_Members_List__>::visit_pointers(std::forward<V>(v));
   }
 
   template <typename V>
-  static VISIT_STRUCT_CXX14_CONSTEXPR void visit_types(V && v) {
+  static constexpr void visit_types(V && v) {
     detail::structure_helper<typename T::Visit_Struct_Registered_Members_List__>::visit_types(std::forward<V>(v));
   }
 
   template <typename V>
-  static VISIT_STRUCT_CXX14_CONSTEXPR void visit_accessors(V && v) {
+  static constexpr void visit_accessors(V && v) {
     detail::structure_helper<typename T::Visit_Struct_Registered_Members_List__>::visit_accessors(std::forward<V>(v));
   }
 
   // Get pointer
   template <int idx>
-  static VISIT_STRUCT_CONSTEXPR auto get_pointer(std::integral_constant<int, idx>)
+  static constexpr auto get_pointer(std::integral_constant<int, idx>)
     -> decltype(detail::Find_t<typename T::Visit_Struct_Registered_Members_List__, idx>::get_ptr())
   {
     return detail::Find_t<typename T::Visit_Struct_Registered_Members_List__, idx>::get_ptr();
@@ -313,7 +313,7 @@ struct visitable <T,
 
   // Get accessor
   template <int idx>
-  static VISIT_STRUCT_CONSTEXPR auto get_accessor(std::integral_constant<int, idx>)
+  static constexpr auto get_accessor(std::integral_constant<int, idx>)
     -> typename detail::Find_t<typename T::Visit_Struct_Registered_Members_List__, idx>::accessor_t
   {
     return {};
@@ -321,7 +321,7 @@ struct visitable <T,
 
   // Get value
   template <int idx, typename S>
-  static VISIT_STRUCT_CONSTEXPR auto get_value(std::integral_constant<int, idx> tag, S && s)
+  static constexpr auto get_value(std::integral_constant<int, idx> tag, S && s)
     -> decltype(std::forward<S>(s).*get_pointer(tag))
   {
     return std::forward<S>(s).*get_pointer(tag);
@@ -329,7 +329,7 @@ struct visitable <T,
 
   // Get name
   template <int idx>
-  static VISIT_STRUCT_CONSTEXPR auto get_name(std::integral_constant<int, idx>)
+  static constexpr auto get_name(std::integral_constant<int, idx>)
     -> decltype(detail::Find_t<typename T::Visit_Struct_Registered_Members_List__, idx>::member_name())
   {
     return detail::Find_t<typename T::Visit_Struct_Registered_Members_List__, idx>::member_name();
@@ -341,11 +341,11 @@ struct visitable <T,
     -> visit_struct::type_c<typename detail::Find_t<typename T::Visit_Struct_Registered_Members_List__, idx>::value_type>;
 
   // Get name of structure
-  static VISIT_STRUCT_CONSTEXPR decltype(T::Visit_Struct_Get_Name__()) get_name() {
+  static constexpr decltype(T::Visit_Struct_Get_Name__()) get_name() {
     return T::Visit_Struct_Get_Name__();
   }
 
-  static VISIT_STRUCT_CONSTEXPR const bool value = true;
+  static constexpr const bool value = true;
 };
 
 } // end namespace trait
@@ -360,7 +360,7 @@ struct visitable <T,
 
 #define BEGIN_VISITABLES(NAME)                                                                                   \
 typedef NAME VISIT_STRUCT_CURRENT_TYPE;                                                                          \
-static VISIT_STRUCT_CONSTEXPR decltype(#NAME) Visit_Struct_Get_Name__() {                                        \
+static constexpr decltype(#NAME) Visit_Struct_Get_Name__() {                                                     \
   return #NAME;                                                                                                  \
 }                                                                                                                \
 ::visit_struct::detail::TypeList<> static inline Visit_Struct_Get_Visitables__(::visit_struct::detail::Rank<0>); \
@@ -373,7 +373,7 @@ struct VISIT_STRUCT_MAKE_MEMBER_NAME(NAME) :                                    
                                           TYPE,                                                                  \
                                           &VISIT_STRUCT_CURRENT_TYPE::NAME>                                      \
 {                                                                                                                \
-  static VISIT_STRUCT_CONSTEXPR const ::visit_struct::detail::char_array<sizeof(#NAME)> & member_name() {        \
+  static constexpr const ::visit_struct::detail::char_array<sizeof(#NAME)> & member_name() {                     \
     return #NAME;                                                                                                \
   }                                                                                                              \
 };                                                                                                               \
@@ -389,7 +389,7 @@ struct VISIT_STRUCT_MAKE_MEMBER_NAME(NAME) :                                    
                                           TYPE,                                                                  \
                                           &VISIT_STRUCT_CURRENT_TYPE::NAME>                                      \
 {                                                                                                                \
-  static VISIT_STRUCT_CONSTEXPR const ::visit_struct::detail::char_array<sizeof(#NAME)> & member_name() {        \
+  static constexpr const ::visit_struct::detail::char_array<sizeof(#NAME)> & member_name() {                     \
     return #NAME;                                                                                                \
   }                                                                                                              \
 };                                                                                                               \
@@ -405,7 +405,7 @@ visit_struct::detail::member_ptr_helper<VISIT_STRUCT_CURRENT_TYPE,              
 										TYPE,                                                                                        \
 										&VISIT_STRUCT_CURRENT_TYPE::NAME>                                                            \
 {                                                                                                                \
-	static VISIT_STRUCT_CONSTEXPR const ::visit_struct::detail::char_array<sizeof(#NAME)>& member_name()           \
+	static constexpr const ::visit_struct::detail::char_array<sizeof(#NAME)>& member_name()                        \
 	{                                                                                                              \
 		return #NAME;                                                                                                \
 	}                                                                                                              \

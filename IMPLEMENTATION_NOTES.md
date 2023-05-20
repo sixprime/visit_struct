@@ -24,29 +24,6 @@ that much.
 
 So, I think using a trait is probably worth it.
 
-## `constexpr` support
-
-`visit_struct` assumes that you have `constexpr` -- it targets C++11 and this is a C++11
-feature. In C++14 however, `constexpr` became more powerful and void functions like the `apply_visitor` function
-itself can be made `constexpr`.
-
-Currently we indicate `C++14-constexpr` things with a macro, and this is enabled by a preprocessor test:
-
-```
-# if (defined _MSC_VER) || (!defined __cplusplus) || (__cplusplus == 201103L)
-#   define VISIT_STRUCT_CONSTEXPR
-# else
-#   define VISIT_STRUCT_CONSTEXPR constexpr
-# endif
-```
-
-It would be better if we could actually test for the feature using SFINAE somehow I guess, but I'm not sure
-how to do that. There might be a good way to improve this test -- using `__cplusplus` value to test version
-is not actually that wise, and this may cause problems for certain compilers.
-
-I suspect that users who have issues here will be able to fix it pretty easily on their own.
-
-
 ## Intrusive Syntax Details and Limitations
 
 When using the intrusive syntax, the macro `VISITABLE` declares a member and declares
