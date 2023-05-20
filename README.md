@@ -4,7 +4,7 @@
 [![Appveyor status](https://ci.appveyor.com/api/projects/status/6ksqg7es938cttn2/branch/master?svg=true)](https://ci.appveyor.com/project/cbeck88/visit_struct)
 [![Boost licensed](https://img.shields.io/badge/license-Boost-blue.svg)](./LICENSE)
 
-A header-only library providing **structure visitors** for C++11 and C++14.
+A header-only library providing **structure visitors** for C++20.
 
 ## Motivation
 
@@ -298,8 +298,61 @@ verbose, the implementation is a bit more complicated, and this one may not be
 useful in some cases, like if the struct you want to visit belongs to some other
 project and you can't change its definition.
 
+## "Metadata" Syntax
 
-## Binary Vistation
+Augments the default syntax with the capability of adding any metadata to members. 
+
+```c++
+struct my_type {
+  int a = 666;
+  float b = 42.0f;
+  std::string c;
+};
+
+struct arg_opt {
+    std::optional<std::string> help;
+    int priority = 0;
+};
+
+struct arg_special {
+    bool is_valid = false;
+};
+
+VISITABLE_STRUCT_METADATA(my_type,
+  METADATA(a, arg_opt { .help = "help message for A", .priority = 1 }),
+  METADATA(b, arg_opt { .help = "help message for B", .priority = 2 }),
+  METADATA(c, arg_special { .is_valid = true }));
+
+struct debug_printer {
+  template <typename T>
+    void operator()(const char* name, const T& value, const arg_opt& ao) {
+        std::cerr << name << ": " << value << " [ desc=" << ao.help.value_or("<none>")
+            << ", priority=" << ao.priority << "]" << std::endl;
+    }
+
+    template <typename T, typename M>
+    void operator()(const char* name, const T& value, const M& /*metadata*/) {
+        std::cerr << name << ": " << value << std::endl;
+    }
+};
+
+void debug_print(const my_type & my_struct) {
+  visit_struct::for_each(my_struct, debug_printer{});
+}
+
+// main [...]
+```
+
+Output :
+```
+a: 666 [ desc=help message for A, priority=1]
+b: 42 [ desc=<none>, priority=2]
+c: foobar
+```
+
+Note : some features have removed from the metadata macro to make it happen, such as `VISIT_STRUCT_MAKE_GETTERS`.
+
+## Binary Visitation
 
 **visit_struct** also supports visiting two instances of the same struct type at once.
 
@@ -370,9 +423,7 @@ v("b", &my_type::b);
 v("c", &my_type::c);
 ```
 
-These may be especially useful when you have a C++14 compiler which has proper `constexpr` support.
-In that case, these visitations are `constexpr` also, so you can use this
-for some nifty metaprogramming purposes. (For an example, check out [test_fully_visitable.cpp](./test_fully_visitable.cpp).)
+For an example, check out [test_fully_visitable.cpp](./test_fully_visitable.cpp).
 
 There are two alternate versions of this visitation.
 
