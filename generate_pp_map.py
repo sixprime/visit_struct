@@ -17,11 +17,10 @@ import sys
 import argparse
 
 argparser = argparse.ArgumentParser(description='Generate a PP_MAP macro for visit_struct.')
-argparser.add_argument('--limit', type=int, help='Numerical limit on number of visited members for the resulting macro. Default is 69.')
+argparser.add_argument('-l', '--limit', type=int, default=69, help='Numerical limit on number of visited members for the resulting macro. Default is 69.')
+argparser.add_argument('-c', '--count-per-group', type=int, default=1, help='The number of arguments to apply the macro to at once. Default is 1.')
+argparser.add_argument('-p', '--prelude', default=True, action=argparse.BooleanOptionalAction, help='Generate generic macros needed for PP_MAP.')
 args = argparser.parse_args()
-
-if args.limit is None:
-  args.limit = 69
 
 def write(s):
   sys.stdout.write(str(s))
@@ -89,12 +88,16 @@ def write_pp_narg():
 
   writeln(" 0))")
 
-# This macro applies the first argument, a macro, to each of the n arguments that follow.
+# This macro applies the first argument, a macro, to each of the n arguments that follow, with 'count_per_group' elements per group.
 # Looks like this.
-# define VISIT_STRUCT_APPLYF3(f,_1,_2,_3) f(_1) f(_2) f(_3)
-def write_pp_apply_f(n):
+# define VISIT_STRUCT_APPLYF3(f,_1,_2,_3) f(_1) f(_2) f(_3) # n=3, count_per_group=1
+# define VISIT_STRUCT_APPLYF4_2(f,_1,_2,_3,_4) f(_1, _2) f(_3, _4) # n=4, count_per_group=2
+def write_pp_apply_f(n, count_per_group):
   write("#define VISIT_STRUCT_APPLYF")
   write(n)
+  if count_per_group > 1:
+    write("_")
+    write(count_per_group)
   write("(f")
   
   for x in range(1, n + 1):
@@ -103,9 +106,12 @@ def write_pp_apply_f(n):
 
   write(")")
 
-  for x in range(1, n + 1):
+  for x in range(1, n + 1, count_per_group):
     write(" f(_")
     write(x)
+    for y in range(1, count_per_group):
+      write(",_")
+      write(x+y)
     write(")")
 
   writeln()
@@ -116,25 +122,37 @@ def write_pp_apply_f(n):
 
 writeln("/*** Generated code ***/")
 writeln()
-writeln("static VISIT_STRUCT_CONSTEXPR const int max_visitable_members = " + str(args.limit) + ";")
+
+if args.prelude:
+  writeln("static constexpr const int max_visitable_members = " + str(args.limit) + ";")
+
+  writeln()
+  writeln("#define VISIT_STRUCT_EXPAND(x) x")
+  write_pp_arg_n()
+  write_pp_narg()
+
+  writeln()
+  writeln("/* need extra level to force extra eval */")
+  writeln("#define VISIT_STRUCT_CONCAT_(a,b) a ## b")
+  writeln("#define VISIT_STRUCT_CONCAT(a,b) VISIT_STRUCT_CONCAT_(a,b)")
+else:
+  writeln("/* no prelude */")
+writeln()
+
+if args.count_per_group == 1:
+  write_pp_apply_f(0, args.count_per_group)
+
+for n in range(args.count_per_group, args.limit + 1, args.count_per_group):
+  write_pp_apply_f(n, args.count_per_group)
 
 writeln()
-writeln("#define VISIT_STRUCT_EXPAND(x) x")
-write_pp_arg_n()
-write_pp_narg()
+if args.prelude:
+  writeln("#define VISIT_STRUCT_APPLY_F_(M, ...) VISIT_STRUCT_EXPAND(M(__VA_ARGS__))")
 
-writeln()
-writeln("/* need extra level to force extra eval */")
-writeln("#define VISIT_STRUCT_CONCAT_(a,b) a ## b")
-writeln("#define VISIT_STRUCT_CONCAT(a,b) VISIT_STRUCT_CONCAT_(a,b)")
-writeln()
-
-for n in range(args.limit + 1):
-  write_pp_apply_f(n)
-
-writeln()
-writeln("#define VISIT_STRUCT_APPLY_F_(M, ...) VISIT_STRUCT_EXPAND(M(__VA_ARGS__))")
-writeln("#define VISIT_STRUCT_PP_MAP(f, ...) VISIT_STRUCT_EXPAND(VISIT_STRUCT_APPLY_F_(VISIT_STRUCT_CONCAT(VISIT_STRUCT_APPLYF, VISIT_STRUCT_PP_NARG(__VA_ARGS__)), f, __VA_ARGS__))")
+if args.count_per_group == 1:
+  writeln("#define VISIT_STRUCT_PP_MAP(f, ...) VISIT_STRUCT_EXPAND(VISIT_STRUCT_APPLY_F_(VISIT_STRUCT_CONCAT(VISIT_STRUCT_APPLYF, VISIT_STRUCT_PP_NARG(__VA_ARGS__)), f, __VA_ARGS__))")
+else:
+  writeln("#define VISIT_STRUCT_PP_MAP_" + str(args.count_per_group) + "(f, ...) VISIT_STRUCT_EXPAND(VISIT_STRUCT_APPLY_F_(VISIT_STRUCT_CONCAT(VISIT_STRUCT_CONCAT(VISIT_STRUCT_APPLYF, VISIT_STRUCT_PP_NARG(__VA_ARGS__)),_" + str(args.count_per_group) + "), f, __VA_ARGS__))")
 
 writeln()
 writeln("/*** End generated code ***/")
